@@ -1,0 +1,30 @@
+{
+  "name": "metasym-core",
+  "version": "0.1.0",
+  "description": "Meta Symbiosis - a metastrategy for iconomi",
+  "scripts": {
+    "lint": "eslint .",
+    "start": "npm run cli.mjs"
+  },
+  "engines": {
+    "node": "16"
+  },
+  "bin":{
+    "metasym":"cli.mjs"
+  },
+  "main": "cli.mjs",
+  "dependencies": {
+    "async": "^3.2.3",
+    "commander": "^9.0.0",
+    "dayjs": "^1.10.7",
+    "dotenv": "^14.3.0",
+    "got": "^12.0.1",
+    "json-buffer": "^3.0.1",
+    "lodash": "^4.17.21",
+    "ora": "^6.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "eslint-config-google": "^0.14.0"
+  }
+}

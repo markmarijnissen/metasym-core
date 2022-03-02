@@ -1,0 +1,5 @@
+node_modules/
+.env
+data.json
+metasym-*.json
+metasym-config.mjs
