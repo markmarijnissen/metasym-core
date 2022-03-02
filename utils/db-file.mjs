@@ -9,7 +9,10 @@ const exists = filename => access(filename).then(() => true, () => false)
 const load = async data => {
     const dataFilename = path.resolve(process.cwd(), 'metasym-data.json');
     if (await exists(dataFilename)) {
-        Object.assign(data,JSONB.parse(await readFile(dataFilename, "utf8")))
+        const txt = await readFile(dataFilename, "utf8");
+        if (txt) {
+            Object.assign(data, JSONB.parse(txt));
+        }
     }
     data.config = config;
     return data;

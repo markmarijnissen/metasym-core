@@ -39,7 +39,7 @@ const db = {
         db.init();
         await db.instance.set(path, val);
         if (commit) {
-            db.commit()
+            await db.commit()
         }
     },
     async get(path) {

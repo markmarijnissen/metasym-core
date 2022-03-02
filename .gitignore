@@ -3,3 +3,4 @@ node_modules/
 data.json
 metasym-*.json
 metasym-config.mjs
+test

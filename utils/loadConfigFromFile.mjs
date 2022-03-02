@@ -10,13 +10,13 @@ import db from "./db.mjs";
 const exists = filename => access(filename).then(() => true, () => false)
 const configFilename = path.resolve(process.cwd(), 'metasym-config.mjs');
 let config = {};
-// if (await exists(configFilename)) {
-//     const module = (await import('file://' + configFilename)).default;
-//     if (typeof module === "function") {
-//         config = await module(db);
-//     } else {
-//         config = module;
-//     }
-// }
-// ensureDefaultConfig(config);
+if (await exists(configFilename)) {
+    const module = (await import('file://' + configFilename)).default;
+    if (typeof module === "function") {
+        config = await module(db);
+    } else {
+        config = module;
+    }
+}
+ensureDefaultConfig(config);
 export default config;

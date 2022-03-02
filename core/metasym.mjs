@@ -13,7 +13,15 @@ import _ from "lodash";
  * 3. metasym: Takes the top N (10) assets and calculates the weights based on the score.
  */
 
-export const ensureDefaultConfig = config => {
+export const ensureDefaultConfig = (config, strategies) => {
+    // const multiplier = {};
+    // const verified = {};
+    // if (strategies) {
+    //     Object.keys(strategies).forEach(ticker => {
+    //         multiplier[ticker] = 1.0;
+    //         verified[ticker] = null;
+    //     })
+    // }
     return _.defaultsDeep(config, {
         weights: [0, 0, 4, 3, 2, 1], // How to weigh returns for [ DAY, WEEK, 1M, 3M, 6M, 1Y ]
         filters: {
@@ -22,7 +30,6 @@ export const ensureDefaultConfig = config => {
         },
         multiplier: {},         // map from { ticker: multiplier }, use to boost/reduce/ignore strategies
         verified: {},           // manually verify strategies to be eligble for METASYM
-        defaultMultiplier: 1,   // new strategies are multiplied by 0 as default (= ignore)
         minStrategies: 10,
         assetMultiplier: {
             BNB: 0              // assets (e.g. coins) can also be boosted/reduced/ignored 
@@ -59,7 +66,7 @@ export const scoreStrategies = (strategies, config) => {
             s.rscore = rawscore;
             
             // Apply the multiplier to boost/reduce/ignore strategies
-            const multiplier = _.isNumber(config.multiplier[s.ticker]) ? config.multiplier[s.ticker] : config.defaultMultiplier;
+            const multiplier = _.isNumber(config.multiplier[s.ticker]) ? config.multiplier[s.ticker] : 1.0;
             const verified_multiplier = config.verified[s.ticker] === true ? 1.0 : 0.0;
             s.score = rawscore * multiplier * verified_multiplier;
 

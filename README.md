@@ -51,7 +51,9 @@ Type the following commands:
 
 ```bash
 npm install metasym-core -g
-metasym rebalance METASYM
+metasym etl                 # load strategies
+metastym verify XXX         # verify at least 10 strategies (or change minimum number of strategies in metasym-config.mjs)
+metasym rebalance METASYM   # run the rebalance algorithm to calculate weights
 ```
 
 ## Usage

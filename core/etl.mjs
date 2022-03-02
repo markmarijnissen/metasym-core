@@ -2,6 +2,7 @@ import db from "../utils/db.mjs";
 import iconomi from "./iconomi.mjs";
 import _ from "lodash";
 import ora from "ora";
+import { ensureDefaultConfig } from "./metasym.mjs";
 
 /**
  * This file handles ETL (Extract-Transform-Load) of the data from ICONOMI to a database.
@@ -81,6 +82,10 @@ export const etl = async () => {
     }
     await etlStrategies();
     await db.set("etl", now);
+    
+    const config = await db.get("config") || {};
+    ensureDefaultConfig(config);
+    await db.set("config", config);
 }
 
 export default etl;

@@ -6,10 +6,12 @@ import dotenv from "dotenv";
 
 import etl from "./core/etl.mjs";
 import rebalance from "./core/rebalance.mjs";
+import list from "./utils/list.mjs";
 import db from "./utils/db.mjs";
 import fileAdapter from "./utils/db-file.mjs";
 db.setAdapter(fileAdapter);
 import "./utils/loadConfigFromFile.mjs";
+import { ensureDefaultConfig } from "./core/metasym.mjs";
 
 dotenv.config();
 
@@ -27,7 +29,9 @@ program
     .description("show the config")
     .action(async () => {
         const config = await db.get("config");
+        ensureDefaultConfig(config, await db.get("strategies/current"));
         console.log('config:', config);
+        await db.commit();
         process.exit(0);
     });
 
@@ -60,7 +64,7 @@ program
         const config = await db.get("config");
         _.set(config, `verified[${ticker}]`, true);
         await db.set("config", config, true);
-        console.log(config.verified);
+        await list({ verified: true });
         process.exit(0);
     })
 
@@ -69,17 +73,7 @@ program
     .description("list all strategies")
     .option("-v --verified","list only verified strategies")
     .action(async opts => {
-        const strategies = await db.get("strategies/current");
-        const config = await db.get("config");
-        _(strategies)
-            .map((s, ticker) => {
-                s.ticker = ticker
-                return s;
-            })
-            .filter(s => !opts.verified || config.verified[s.ticker] === true)
-            .forEach(s => {
-                console.log(`${config.verified[s.ticker] ? '✅' : '❌'} ${s.ticker} (${config.multiplier[s.ticker] || config.defaultMultiplier}) ${s.name} @${s.manager}`);
-            });
+        await list(opts);
         process.exit(0);
     })
 
