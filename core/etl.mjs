@@ -1,7 +1,6 @@
-import db from "./db.mjs";
+import db from "../utils/db.mjs";
 import iconomi from "./iconomi.mjs";
 import _ from "lodash";
-import got from "got";
 import ora from "ora";
 
 /**

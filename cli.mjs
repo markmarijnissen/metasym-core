@@ -1,19 +1,26 @@
 #!/usr/bin/env node
 import _ from "lodash";
+import { readFile } from "fs/promises";
 import { program } from "commander";
 import dotenv from "dotenv";
 
-import etl from "./src/etl.mjs";
-import rebalance from "./src/rebalance.mjs";
-import db from "./src/db.mjs";
-import "./src/loadConfigFromFile.mjs";
+import etl from "./core/etl.mjs";
+import rebalance from "./core/rebalance.mjs";
+import db from "./utils/db.mjs";
+import fileAdapter from "./utils/db-file.mjs";
+db.setAdapter(fileAdapter);
+import "./utils/loadConfigFromFile.mjs";
 
 dotenv.config();
 
 program
     .name("metasym")
     .description("A metastrategy for iconomi")
-    .version("0.0.1");
+    .version(JSON.parse(
+        await readFile(
+            new URL('./package.json', import.meta.url)
+        )
+    ).version);
 
 program
     .command("config")
@@ -21,12 +28,16 @@ program
     .action(async () => {
         const config = await db.get("config");
         console.log('config:', config);
+        process.exit(0);
     });
 
 program
     .command("etl")
     .description("download strategies to database")
-    .action(etl);
+    .action(async () => {
+        await etl();
+        process.exit(0);
+    });
 
 program
     .command("rebalance <strategy>")
@@ -35,6 +46,7 @@ program
     .action(async (strategy, { save }) => {
         await etl();
         await rebalance(({ strategy, save }));
+        process.exit(0);
     })
 
 program
@@ -49,6 +61,7 @@ program
         _.set(config, `verified[${ticker}]`, true);
         await db.set("config", config, true);
         console.log(config.verified);
+        process.exit(0);
     })
 
 program
@@ -67,6 +80,7 @@ program
             .forEach(s => {
                 console.log(`${config.verified[s.ticker] ? '✅' : '❌'} ${s.ticker} (${config.multiplier[s.ticker] || config.defaultMultiplier}) ${s.name} @${s.manager}`);
             });
+        process.exit(0);
     })
 
 program.parse();

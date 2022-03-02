@@ -1,8 +1,8 @@
+import _ from "lodash";
 import iconomi from "./iconomi.mjs";
 import { metasymFromStrategies } from "./metasym.mjs";
-import db from "./db.mjs";
-import _ from "lodash";
-import { printStructure } from "./utils.mjs";
+import db from "../utils/db.mjs";
+import { printStructure } from "../utils/utils.mjs";
 
 // Uses the metasym.mjs module to calculate the METASYM strategy, and rebalance it on ICONOMI.
 const rebalance = async ({ save, strategy }) => {

@@ -2,7 +2,7 @@ import got from 'got';
 import crypto from 'crypto';
 import queue from 'async/queue.js';
 import dayjs from "dayjs";
-import { sleep } from "./utils.mjs";
+import { sleep } from "../utils/utils.mjs";
 
 /**
  * This file handles all API calls to ICONOMI.

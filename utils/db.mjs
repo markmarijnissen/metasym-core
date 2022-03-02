@@ -1,5 +1,13 @@
 import _ from "lodash";
-import fileAdapter from "./db-file.mjs";
+
+export const memoryAdapter = () => {
+    const data = {};
+    return {
+        async set(path, val) { _.set(data, path.replace(/\//g,'.'), val) },
+        async get(path) { _.get(data, path.replace(/\//g, '.')) }
+    }
+}
+
 
 /**
  * Simple key/value database with support for nested objects.
@@ -16,12 +24,11 @@ import fileAdapter from "./db-file.mjs";
  * when performing the ETL (Extract-Transform-Load)
  */
 const db = {
-    adapter: fileAdapter,  // factory function to return instance
-    instance: null,        // actual database instance.
+    adapter: memoryAdapter,     // factory function to return instance
+    instance: null,             // actual database instance.
     init() {
         if (!db.instance) {
             db.instance = db.adapter();
-            console.log("using database:", db.adapter.name);
         }
     },
     async setAdapter(adapter, opts) {
@@ -46,12 +53,6 @@ const db = {
             await db.instance.commit();
         }
     }
-}
-
-export const memoryAdapter = {
-    data: {},
-    async set(path, val) { _.set(memoryAdapter.data, path, val) },
-    async get(path) { _.get(memoryAdapter.data, path) }
 }
 
 export default db;
