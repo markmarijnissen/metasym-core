@@ -1,4 +1,4 @@
-import got from 'got';
+import axios from 'axios';
 import crypto from 'crypto';
 import queue from 'async/queue.js';
 import dayjs from "dayjs";
@@ -29,6 +29,7 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
   // console.log(`${method} ${api}`);
   if (method === 'POST') payload = JSON.stringify(payload);
   const request = {
+    'url': API_URL + api,
     'method': method,
     'headers': {
       'Content-Type': 'application/json'
@@ -49,9 +50,8 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
   if (method === 'POST') {
     request.body = payload;
   }
-  const res = await got(API_URL + api, request);
-  // console.log(api, res.statusCode, res.statusMessage, res.body);
-  return JSON.parse(res.body);
+  const res = await axios(request);
+  return res.data;
 }
 
 const q = queue(apiWorker, 5);
@@ -67,15 +67,10 @@ api.get = (url, signed = false) => api('GET', url, '', signed);
 api.post = (url, payload, signed = true) => api('POST', url, payload, signed);
 
 const createPriceHistory = path => {
-  const pricehistory = function (ticker, {
-    currency = "EUR",
-    granulation = "DAILY",
-    from,
-    to
-  }) {
-    if (!from) from = Math.floor(new Date(2000, 1, 1).getTime() / 1000);
-    if (!to) to = Math.floor(Date.now() / 1000);
-    return api.get(`${path}/${ticker}/pricehistory?currency=${currency}&granulation=${granulation}&from=${from}&to=${to}`)
+  const pricehistory = function pricehistory(ticker, opts = {}) {
+    if (!opts.from) opts.from = Math.floor(new Date(2000, 1, 1).getTime() / 1000);
+    if (!opts.to) opts.to = Math.floor(Date.now() / 1000);
+    return api.get(`${path}/${ticker}/pricehistory?currency=${opts.currency || 'EUR'}&granulation=${opts.granulation || 'DAILY'}&from=${opts.from}&to=${opts.to}`)
   };
   pricehistory.day = function (ticker, date) {
     return pricehistory(ticker, {

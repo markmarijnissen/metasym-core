@@ -29,6 +29,7 @@ const rebalance = async ({ save, strategy }) => {
     if (save === true) {
         await iconomi.post(`/v1/strategies/${ticker}/structure`, newStructure, true);
         console.log("rebalanced strategy");
+        await db.set(`rebalance/${Date.now()}`, newStructure.values); // log on success!
     } else {
         console.log('dry-run, use --save to rebalance strategy');
     }

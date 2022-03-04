@@ -73,19 +73,28 @@ export const etlStrategies = async function (opts) {
     return n;
 }
 
-
-export const etl = async () => {
-    const now = Date.now();
-    const retrievedAt = await db.get("etl") || 0;
-    if (now - EXPIRATION_TIME < retrievedAt) {
-        return 0;
-    }
-    await etlStrategies();
-    await db.set("etl", now);
-    
+export const etlConfig = async () => {
     const config = await db.get("config") || {};
     ensureDefaultConfig(config);
     await db.set("config", config);
+}
+
+export const isEtlExpired = async () => {
+    const now = Date.now();
+    const retrievedAt = await db.get("etl") || 0;
+    return now > retrievedAt + EXPIRATION_TIME;
+}
+
+export const setEtl = async () => {
+    await db.set("etl", Date.now());
+}
+
+export const etl = async () => {
+    if (await isEtlExpired()) {
+        await etlStrategies();
+        await etlConfig();
+        await setEtl();
+    }
 }
 
 export default etl;

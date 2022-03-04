@@ -25,6 +25,7 @@ export const ensureDefaultConfig = (config, strategies) => {
     return _.defaultsDeep(config, {
         weights: [0, 0, 4, 3, 2, 1], // How to weigh returns for [ DAY, WEEK, 1M, 3M, 6M, 1Y ]
         filters: {
+            verified: true,     // strategy must be manually verified
             positive: false,    // strategy score > 0
             mature: false       // strategy has a 3M return value (suggesting it is >3 M old)
         },
@@ -47,13 +48,12 @@ export const scoreStrategies = (strategies, config) => {
     if (!config) {
         throw new Error("missing config");
     }
-    const { mature, positive } = config.filters;
+    const { mature, verified, positive } = config.filters;
     const sumWeights = _.sum(config.weights.map(x => Number(x)));
     const returnFields = ["DAY", "WEEK", "MONTH", "THREE_MONTH", "SIX_MONTH", "YEAR"];
 
     // Pass 1 - Filter strategies & Calculate scores
     const result = _(strategies)
-        // .filter((s,ticker) => config.verified[ticker] === true)
         .map((s, ticker) => {
             s.ticker = ticker;
 
@@ -67,8 +67,7 @@ export const scoreStrategies = (strategies, config) => {
             
             // Apply the multiplier to boost/reduce/ignore strategies
             const multiplier = _.isNumber(config.multiplier[s.ticker]) ? config.multiplier[s.ticker] : 1.0;
-            const verified_multiplier = config.verified[s.ticker] === true ? 1.0 : 0.0;
-            s.score = rawscore * multiplier * verified_multiplier;
+            s.score = rawscore * multiplier;
 
             // Distribute the strategy-score over the assets
             s.structure.values.forEach(c => {
@@ -81,7 +80,8 @@ export const scoreStrategies = (strategies, config) => {
         .filter(s => {
             // Apply filters
             return (!mature || !!s.statistics.returns.THREE_MONTH) &&
-                (!positive || s.rscore > 0);
+                (!positive || s.rscore > 0) &&
+                (!verified || config.verified[s.ticker] === true)
         })
         .sortBy("score")
         .reverse()
