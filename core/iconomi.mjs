@@ -12,12 +12,24 @@ import { sleep } from "../utils/utils.mjs";
 
 const API_URL = 'https://api.iconomi.com'
 
-function generateSignature(payload, requestType, requestPath, timestamp) {
+export function generateSignature(payload, requestType, requestPath, timestamp) {
   const index = requestPath.indexOf('?')
   if (index != -1) {
     requestPath = requestPath.substring(0, index)
   }
   const textToSign = timestamp + requestType + requestPath + payload;
+  if (!timestamp) {
+    throw new Error("Missing timestamp");
+  }
+  if (requestType !== "POST" && requestType !== "GET") {
+    throw new Error("Invalid requestType");
+  }
+  if (!requestPath) {
+    throw new Error("Missing requestPath");
+  }
+  if (!process.env.ICN_API_KEY) {
+    throw new Error("Missing ICN_API_KEY");
+  }
   if (!process.env.ICN_SECRET) {
     throw new Error("Missing ICN_SECRET");
   }
@@ -34,9 +46,6 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     'headers': {
       'Content-Type': 'application/json'
     },
-    retry: {
-      limit: 3
-    }
   }
   if (signed) {
     const timestamp = new Date().getTime();
@@ -48,7 +57,7 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     });
   }
   if (method === 'POST') {
-    request.body = payload;
+    request.data = JSON.parse(payload);
   }
   const res = await axios(request);
   return res.data;
@@ -101,22 +110,22 @@ api.assets.statistics = ticker => api.get(`/v1/assets/${ticker}/statistics`);
 api.assets.pricehistory = createPriceHistory('/v1/assets');
 
 // Strategies
-api.strategies = function (ticker) { return api.get(ticker ? `/v1/strategies/${ticker}` : '/v1/strategies') };
-api.strategies.statistics = async function (ticker) {
-  return await api.get(`/v1/strategies/${ticker}/statistics`);
+api.strategies = function (ticker, signed = false) { return api.get(ticker ? `/v1/strategies/${ticker}` : '/v1/strategies', signed) };
+api.strategies.statistics = async function (ticker, signed = false) {
+  return await api.get(`/v1/strategies/${ticker}/statistics`, signed);
 };
-api.strategies.price = async function (ticker) {
-  return await api.get(`/v1/strategies/${ticker}/price`);
+api.strategies.price = async function (ticker, signed = false) {
+  return await api.get(`/v1/strategies/${ticker}/price`, signed);
 };
-api.strategies.structure = async function (ticker) {
-  return await api.get(`/v1/strategies/${ticker}/structure`);
+api.strategies.structure = async function (ticker, signed = false) {
+  return await api.get(`/v1/strategies/${ticker}/structure`, signed);
 };
-api.strategies.full = async function(ticker) {
+api.strategies.full = async function(ticker, signed = false) {
   if (ticker) {
     const [price, statistics, structure] = await Promise.all([
-      api.strategies.price(ticker),
-      api.strategies.statistics(ticker),
-      api.strategies.structure(ticker)
+      api.strategies.price(ticker, signed),
+      api.strategies.statistics(ticker, signed),
+      api.strategies.structure(ticker, signed)
     ]);
     return { price, statistics, structure };
 
