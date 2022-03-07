@@ -12,17 +12,6 @@ import _ from "lodash";
  * 2. scoreAssets: pivots the scored strategies to create a list of assets with a score (that is the sum of strategies).
  * 3. metasym: Takes the top N (10) assets and calculates the weights based on the score.
  */
-
-export const validateNumber = (name, n, min = 0, max = 1) => {
-    if (!_.isNumber(n)) throw new Error(`${name} is not a number`);
-    if (n < min) throw new Error(`${name} is less than ${min}`);
-    if (n > max) throw new Error(`${name} is more than ${max}`);
-}
-
-export const validateBool = (config, name) => {
-    if (typeof _.get(config, name) !== "boolean") throw new Error(`${name} should be true or false`);
-}
-
 export const ensureDefaultConfig = (config, strategies) => {
     // const multiplier = {};
     // const verified = {};
@@ -52,10 +41,16 @@ export const ensureDefaultConfig = (config, strategies) => {
         assetMultiplier: {
             BNB: 0              // assets (e.g. coins) can also be boosted/reduced/ignored 
         },
-        metasymSize: 10         // how many assets should be in the METASYM strategy?
+        metasymSize: 10,         // how many assets should be in the METASYM strategy?
+        etlExpiration: 45,       // how quick should strategy data expire? (in minutes)
+        rebalance: {
+            min: 60,            // how QUICK is rebalancing allowed? (in minutes)
+            max: 7 * 24 * 60,   // how SLOW is rebalancing allowed? (in minutes)
+            threshold: 0.0      // how much should the actual and calculated weights differ before rebalancing?
+        }
     });
 
-    // Validation
+    // Validation - TODO use a proper library or JSON scheme for this, or even typescript...
     validateNumber('diversify.maxWeight', config.diversify.maxWeight, 0, 1);
     validateNumber('metasymSize', config.metasymSize, 0, 1000);
     validateNumber('minStrategies', config.minStrategies, 1, 1000);
@@ -69,6 +64,16 @@ export const ensureDefaultConfig = (config, strategies) => {
     validateBool(config, "filters.mature");
 
     return config;
+}
+
+const validateNumber = (name, n, min = 0, max = 1) => {
+    if (!_.isNumber(n)) throw new Error(`${name} is not a number`);
+    if (n < min) throw new Error(`${name} is less than ${min}`);
+    if (n > max) throw new Error(`${name} is more than ${max}`);
+}
+
+const validateBool = (config, name) => {
+    if (typeof _.get(config, name) !== "boolean") throw new Error(`${name} should be true or false`);
 }
 
 // Score the strategies based on a weighted average of the returns.

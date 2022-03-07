@@ -32,14 +32,12 @@ const transformStructure = s => {
     return result;
 }
 
-
-const EXPIRATION_TIME = 2/*h*/ * 60/*min*/ * 60/*sec*/ * 1000/*ms*/;
-
 export const etlStrategies = async function (opts) {
     const now = Date.now();
     const spinner = ora("retrieving a list of strategies...").start();
     const strategies = await iconomi.strategies();
     
+    const etlExpiration = (await db.get("config/etlExpiration") || 45) * 60000
     const retrieval = await db.get("strategies/retrieval") || {};
     strategies.forEach(s => {
         if (!retrieval[s.ticker]) {
@@ -48,10 +46,10 @@ export const etlStrategies = async function (opts) {
     });
     await db.set("strategies/retrieval", retrieval);
     
-    let n = Object.values(retrieval).filter(t => t > now - EXPIRATION_TIME).length;
+    let n = Object.values(retrieval).filter(t => t > now - etlExpiration).length;
     for (let s of strategies) {
         const ticker = s.ticker;
-        if (retrieval[ticker] > now - EXPIRATION_TIME) {
+        if (retrieval[ticker] > now - etlExpiration) {
             continue;
         }
         spinner.text = `${n + 1}/${strategies.length} ${ticker}`;
@@ -81,8 +79,9 @@ export const etlConfig = async () => {
 
 export const isEtlExpired = async () => {
     const now = Date.now();
+    const etlExpiration = (await db.get("config/etlExpiration") || 45) * 60000;
     const retrievedAt = await db.get("etl") || 0;
-    return now > retrievedAt + EXPIRATION_TIME;
+    return now > retrievedAt + etlExpiration;
 }
 
 export const setEtl = async () => {
