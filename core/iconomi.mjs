@@ -1,8 +1,15 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import crypto from 'crypto';
 import queue from 'async/queue.js';
 import dayjs from "dayjs";
 import { sleep } from "../utils/utils.mjs";
+
+// Retry requests 3 times before timing out
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay
+});
 
 /**
  * This file handles all API calls to ICONOMI.
@@ -46,6 +53,7 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     'headers': {
       'Content-Type': 'application/json'
     },
+    timeout: 5000,
   }
   if (signed) {
     const timestamp = new Date().getTime();

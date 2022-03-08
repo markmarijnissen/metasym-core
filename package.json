@@ -4,7 +4,8 @@
   "description": "Meta Symbiosis - a metastrategy for iconomi",
   "scripts": {
     "lint": "eslint .",
-    "start": "npm run cli.mjs"
+    "start": "npm run cli.mjs",
+    "test": "jest"
   },
   "engines": {
     "node": "16"
@@ -13,8 +14,10 @@
     "metasym": "cli.mjs"
   },
   "main": "index.mjs",
+  "type":"module",
   "dependencies": {
     "async": "^3.2.3",
+    "axios-retry": "^3.2.4",
     "commander": "^9.0.0",
     "dayjs": "^1.10.7",
     "dotenv": "^14.3.0",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "eslint": "^7.6.0",
-    "eslint-config-google": "^0.14.0"
+    "eslint-config-google": "^0.14.0",
+    "jest": "^27.5.1"
   }
 }

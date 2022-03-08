@@ -12,7 +12,7 @@ import _ from "lodash";
  * 2. scoreAssets: pivots the scored strategies to create a list of assets with a score (that is the sum of strategies).
  * 3. metasym: Takes the top N (10) assets and calculates the weights based on the score.
  */
-export const ensureDefaultConfig = (config, strategies) => {
+export const ensureDefaultConfig = (config) => {
     // const multiplier = {};
     // const verified = {};
     // if (strategies) {
@@ -33,14 +33,12 @@ export const ensureDefaultConfig = (config, strategies) => {
         },
         diversify: {            // prevent one asset from becoming dominant
             maxWeight: 1.0,     // max weight per asset
-            excluded: ["USDT", "DAI", "TUSD"]   // except these assets!
+            excluded: ["USDT", "DAI", "TUSD","USDC"]   // except these assets!
         },
         multiplier: {},         // map from { ticker: multiplier }, use to boost/reduce/ignore strategies
         verified: {},           // manually verify strategies to be eligble for METASYM
         minStrategies: 10,
-        assetMultiplier: {
-            BNB: 0              // assets (e.g. coins) can also be boosted/reduced/ignored 
-        },
+        assetMultiplier: {},     // assets (e.g. coins) can also be boosted/reduced/ignored
         metasymSize: 10,         // how many assets should be in the METASYM strategy?
         etlExpiration: 45,       // how quick should strategy data expire? (in minutes)
         rebalance: {
@@ -52,11 +50,13 @@ export const ensureDefaultConfig = (config, strategies) => {
 
     // Validation - TODO use a proper library or JSON scheme for this, or even typescript...
     validateNumber('diversify.maxWeight', config.diversify.maxWeight, 0, 1);
-    validateNumber('metasymSize', config.metasymSize, 0, 1000);
+    validateNumber('metasymSize', config.metasymSize, 3, 1000);
     validateNumber('minStrategies', config.minStrategies, 1, 1000);
     validateNumber('filters.minAUM', config.filters.minAUM, 0, 1000000000);
     validateNumber('filters.minRebalanceCount', config.filters.minRebalanceCount, 0, 1000); 
     config.weights.forEach((w, i) => validateNumber(`weights[${i}]`, w, 0, 100));
+    if (_.sum(config.weights) === 0) throw new Error("At least one weight should be more than 0");
+    if (config.weights.length !== 6) throw new Error("Expecting 6 weights");
     _.map(config.multiplier, (n, ticker) => validateNumber(`multiplier[${ticker}]`, n, 0, 100));
     _.map(config.assetMultiplier, (n, ticker) => validateNumber(`assetMultiplier[${ticker}]`, n, 0, 100));
     validateBool(config, "filters.verified");
@@ -80,12 +80,13 @@ const validateBool = (config, name) => {
 // Also score the assets in the portfolio by distributing the strategy score according to the asset weight.
 // Will use strategy and asset multipliers to subjectively boost/reduce/ignore certain strategies and assets.
 export const scoreStrategies = (strategies, config) => {
-    if (!strategies || Object.keys(strategies).length < 400) {
+    if (!strategies || Object.keys(strategies).length < config.minStrategies) {
         throw new Error("missing strategies");
     }
     if (!config) {
         throw new Error("missing config");
     }
+    ensureDefaultConfig(config);
     const { mature, verified, positive, minRebalanceCount, minCopiers, minAUM } = config.filters;
     const sumWeights = _.sum(config.weights.map(x => Number(x)));
     const returnFields = ["DAY", "WEEK", "MONTH", "THREE_MONTH", "SIX_MONTH", "YEAR"];
@@ -115,7 +116,7 @@ export const scoreStrategies = (strategies, config) => {
             // Apply the multiplier to boost/reduce/ignore strategies
             const multiplier = _.isNumber(config.multiplier[s.ticker]) ? config.multiplier[s.ticker] : 1.0;
             s.score = rawscore * multiplier;
-
+            
             // Distribute the strategy-score over the assets
             s.structure.values.forEach(c => {
                 const cmultiplier = _.isNumber(config.assetMultiplier[c.ticker]) ? config.assetMultiplier[c.ticker] : 1.0;
@@ -137,7 +138,7 @@ export const scoreStrategies = (strategies, config) => {
     const max = _.maxBy(result, "score")?.score || 0;
     const sumScore = _.sum(result.map(s => s.score - min));
     const numStrategies = _.filter(result, s => s.score !== 0).length;
-    if (sumScore === 0 || numStrategies < config.minStrategies) {
+    if (_.sumBy(result,"score") === 0 || numStrategies < config.minStrategies) {
         console.warn(`Ensure at least ${config.minStrategies} strategies have config.verified[TICKER] = true and a config.multiplier[ticker] > 0`);
         throw new Error(`Less than ${config.minStrategies} strategies have a score > 0 (${numStrategies})`);
     }
@@ -187,7 +188,7 @@ export const scoreAssets = (scoredStrategies) => {
         .value();
 }
 
-const round = (x,n=2) => parseFloat(x.toFixed(n))
+const round = (x, n = 2) => parseFloat(x.toFixed(n)); // 2 works...
 
 // Take the top N (10) assets from the scored assets list and calculate the weights.
 export const metasymFromScoredAssets = (scoredAssets, config) => {

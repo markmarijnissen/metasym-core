@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`config defaults An empty object defaults to a full config 1`] = `
+Object {
+  "assetMultiplier": Object {},
+  "diversify": Object {
+    "excluded": Array [
+      "USDT",
+      "DAI",
+      "TUSD",
+      "USDC",
+    ],
+    "maxWeight": 1,
+  },
+  "etlExpiration": 45,
+  "filters": Object {
+    "mature": false,
+    "minAUM": 0,
+    "minCopiers": 0,
+    "minRebalanceCount": 0,
+    "positive": false,
+    "verified": true,
+  },
+  "metasymSize": 10,
+  "minStrategies": 10,
+  "multiplier": Object {},
+  "rebalance": Object {
+    "max": 10080,
+    "min": 60,
+    "threshold": 0,
+  },
+  "verified": Object {},
+  "weights": Array [
+    0,
+    0,
+    4,
+    3,
+    2,
+    1,
+  ],
+}
+`;

@@ -14,27 +14,31 @@ When using this tool, a `metasym-config.mjs` file will be created, containinig a
 
 ```js
 export default {
-    "weights": [ // calculate a weighted average of returns
-        0,  // DAY
-        0,  // WEEK
-        4,  // 1 MONTH
-        3,  // 3 MONTHS
-        2,  // 6 MONTHS
-        1   // 1 YEAR
-    ],
-    "filters": {
-        "positive": false, // only include strategies with a positive score
-        "mature": false    // only include strategies with a 3 MONTH return (e.g. existing longer than 3 months)
+    weights: [0, 0, 4, 3, 2, 1], // How to weigh returns for [ DAY, WEEK, 1M, 3M, 6M, 1Y ]
+    filters: {
+        verified: true,     // strategy must be manually verified
+        positive: false,    // strategy score > 0
+        mature: false,       // strategy has a 3M return value (suggesting it is >3 M old)
+        minRebalanceCount: 0, // minimum rebalance count
+        minCopiers: 0,         // minimum copiers
+        minAUM: 0,             // minimum assets under management,
     },
-    "multiplier": {
-        "DECENTCOOP": 2.0       // You can boost, reduce or ignore strategies by setting a multiplier
+    diversify: {            // prevent one asset from becoming dominant
+        maxWeight: 1.0,     // max weight per asset
+        excluded: ["USDT", "DAI", "TUSD","USDC"]   // except these assets!
     },
-    "verified": {
-        "DECENTCOOP": true     // You must manually verify a strategy before it is included
+    multiplier: {},         // map from { ticker: multiplier }, use to boost/reduce/ignore strategies
+    verified: {},           // manually verify strategies to be eligble for METASYM
+    minStrategies: 10,
+    assetMultiplier: {
+        BNB: 0              // assets (e.g. coins) can also be boosted/reduced/ignored 
     },
-    "minStrategies": 10,         // the mininum number of strategies required
-    "assetMultiplier": {
-        "BNB": 0                 // individual assets (e.g. coins) can also be boosted, reduced or ignored.
+    metasymSize: 10,         // how many assets should be in the METASYM strategy?
+    etlExpiration: 45,       // how quick should strategy data expire? (in minutes)
+    rebalance: {
+        min: 60,            // how QUICK is rebalancing allowed? (in minutes)
+        max: 7 * 24 * 60,   // how SLOW is rebalancing allowed? (in minutes)
+        threshold: 0.0      // how much should the actual and calculated weights differ before rebalancing?
     }
 }
 ```
