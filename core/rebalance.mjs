@@ -6,7 +6,7 @@ import db from "../utils/db.mjs";
 const structureToMap = structure => {
     const result = {};
     structure.values.forEach(v => {
-        result[v.assetTicker || v.ticker] = v.rebalancedWeight;
+        result[v.assetTicker || v.ticker] = v.targetWeight || v.rebalancedWeight;
     });
     return result;
 }
@@ -66,22 +66,13 @@ const rebalance = async ({ save, strategy, force }) => {
         save: save === true,
         force: force === true,
         diff,
+        ok: false,
         t: Math.round((timestamp - (previousTimestamp || 0))/60000),
         config: config.rebalance,
         current: structureToMap(currentStructure),
         new: structureToMap(newStructure),
     };
     await db.set('rebalance/logs/' + timestamp, logData);
-    if (save === true && shouldRebalance) {
-        await iconomi.post(`/v1/strategies/${ticker}/structure`, newStructure, true);
-        didRebalance = true;
-        console.log("rebalanced strategy");
-        await db.set(`rebalance/timestamp`, timestamp); // log timestamp for min/max calculations
-    } else if(shouldRebalance) {
-        console.log('dry-run, use --save to rebalance strategy');
-    } else {
-        console.log('rebalancing not needed, use --force to force rebalancing');
-    }
     _.forEach(logData.new, (w, t) => {
         const diff = w - (logData.current[t] || 0)
         console.log(`${t}: ${(100 * w).toFixed(2)} (${(100 * diff).toFixed(2)})`);
@@ -89,7 +80,19 @@ const rebalance = async ({ save, strategy, force }) => {
     console.log("---");
     console.log('sum', _.sumBy(newStructure.values, "rebalancedWeight"));
     console.log("diff", (100 * diff).toFixed(2));
-    ["shouldRebalance", "save", "force","t", "config"].forEach(key => console.log(key, logData[key]));
+    ["shouldRebalance", "save", "force", "t", "config"].forEach(key => console.log(key, logData[key]));
+
+    if (save === true && shouldRebalance) {
+        await iconomi.post(`/v1/strategies/${ticker}/structure`, newStructure, true);
+        didRebalance = true;
+        console.log("rebalanced strategy");
+        await db.set(`rebalance/logs/${timestamp}/ok`, true);
+        await db.set(`rebalance/timestamp`, timestamp); // log timestamp for min/max calculations
+    } else if(shouldRebalance) {
+        console.log('dry-run, use --save to rebalance strategy');
+    } else {
+        console.log('rebalancing not needed, use --force to force rebalancing');
+    }
     // printStructure(newStructure)
     return didRebalance;
 }

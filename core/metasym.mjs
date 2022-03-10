@@ -188,7 +188,7 @@ export const scoreAssets = (scoredStrategies) => {
         .value();
 }
 
-const round = (x, n = 2) => parseFloat(x.toFixed(n)); // 2 works...
+const round = (x, n = 4) => parseFloat(x.toFixed(n)); // 2 works...
 
 // Take the top N (10) assets from the scored assets list and calculate the weights.
 export const metasymFromScoredAssets = (scoredAssets, config) => {

@@ -46,7 +46,8 @@ export function generateSignature(payload, requestType, requestPath, timestamp) 
 async function apiWorker({ method, api, payload = '', signed = false }) {
   await sleep(50);
   // console.log(`${method} ${api}`);
-  if (method === 'POST') payload = JSON.stringify(payload);
+  let payloadText = '';
+  if (method === 'POST') payloadText = JSON.stringify(payload);
   const request = {
     'url': API_URL + api,
     'method': method,
@@ -57,7 +58,7 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
   }
   if (signed) {
     const timestamp = new Date().getTime();
-    const hashSign = generateSignature(payload, method, api, timestamp)
+    const hashSign = generateSignature(payloadText, method, api, timestamp)
     Object.assign(request.headers, {
       'ICN-API-KEY': process.env.ICN_API_KEY,
       'ICN-SIGN': hashSign,
@@ -65,7 +66,8 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     });
   }
   if (method === 'POST') {
-    request.data = JSON.parse(payload);
+    // request.body = payloadText;
+    request.data = payload;
   }
   const res = await axios(request);
   return res.data;
