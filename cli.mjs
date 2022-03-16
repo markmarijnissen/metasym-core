@@ -4,7 +4,7 @@ import { readFile } from "fs/promises";
 import { program } from "commander";
 import dotenv from "dotenv";
 
-import etl from "./core/etl.mjs";
+import etl, { etlMAReturns, etlPriceHistories } from "./core/etl.mjs";
 import rebalance from "./core/rebalance.mjs";
 import list from "./utils/list.mjs";
 import db from "./utils/db.mjs";
@@ -38,8 +38,20 @@ program
 program
     .command("etl")
     .description("download strategies to database")
-    .action(async () => {
-        await etl();
+    .option("--force", "force")
+    .option("--skip-prices", "skip downloading price history and calculating Moving Average")
+    .action(async (opts) => {
+        await etl(opts);
+        process.exit(0);
+    });
+
+program
+    .command("etl-prices")
+    .description("download pricing to database")
+    .option("--force", "force")
+    .action(async (opts) => {
+        await etlPriceHistories(opts);
+        await etlMAReturns(opts);
         process.exit(0);
     });
 

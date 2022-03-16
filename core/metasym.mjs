@@ -35,6 +35,11 @@ export const ensureDefaultConfig = (config) => {
             maxWeight: 1.0,     // max weight per asset
             excluded: ["USDT", "DAI", "TUSD","USDC"]   // except these assets!
         },
+        maReturns: {       // use Moving Average Returns instead of ICONOMI's returns.
+            enabled: false,
+            n: [0, 0, 7, 30, 30, 30],
+            method: "hull"
+        },
         multiplier: {},         // map from { ticker: multiplier }, use to boost/reduce/ignore strategies
         verified: {},           // manually verify strategies to be eligble for METASYM
         minStrategies: 10,
@@ -97,18 +102,19 @@ export const scoreStrategies = (strategies, config) => {
             s.ticker = ticker;
             return s;
         })
-        .filter(s => {
-            // Apply filters
-            return (!mature || !!s.statistics.returns.THREE_MONTH) &&
-                (!verified || config.verified[s.ticker] === true) &&
-                (minAUM === 0 || s.price.aum >= minAUM) &&
-                (minRebalanceCount === 0 || s.structure.monthlyRebalancedCount >= minRebalanceCount)
-        })
+        // .filter(s => {
+        //     // Apply filters
+        //     return (!mature || _.has(s,"statistics.returns.THREE_MONTH")) &&
+        //         (!verified || config.verified[s.ticker] === true) &&
+        //         (minAUM === 0 || s.price.aum >= minAUM) &&
+        //         (minRebalanceCount === 0 || s.structure.monthlyRebalancedCount >= minRebalanceCount)
+        // })
         .map(s => {
             // Calculate a weighted average based on DAY / WEEK / 1M / 3M / 6M / 1Y returns.
+            const returnBaseField = config.maReturns.enabled ? "ma" : "statistics.returns";
             s.score = 0;
             returnFields.forEach((field, i) => {
-                s.score += (s.statistics.returns[field] || 0) * Number(config.weights[i]);
+                s.score += _.get(s, `${returnBaseField}.${field}`,0) * Number(config.weights[i]);
             });
             const rawscore = s.score / sumWeights;
             s.rscore = rawscore;
@@ -127,7 +133,11 @@ export const scoreStrategies = (strategies, config) => {
         })
         .filter(s => {
             // Apply filters
-            return (!positive || s.rscore > 0);
+            return (!positive || s.rscore > 0) &&
+                (!mature || _.has(s, "statistics.returns.THREE_MONTH")) &&
+                (!verified || config.verified[s.ticker] === true) &&
+                (minAUM === 0 || s.price.aum >= minAUM) &&
+                (minRebalanceCount === 0 || s.structure.monthlyRebalancedCount >= minRebalanceCount)
         })
         .sortBy("score")
         .reverse()
