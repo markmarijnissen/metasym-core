@@ -1,20 +1,7 @@
 import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import crypto from 'crypto';
 import fastq from "fastq";
 import dayjs from "dayjs";
-import { sleep } from "../utils/utils.mjs";
-
-// Retry requests 3 times before timing out
-axiosRetry(axios, {
-  retries: 3,
-  retryCondition() {
-    return true;
-  },
-  retryDelay(i) {
-    return i < 3 ? 1000 : 60000
-  },
-});
 
 /**
  * This file handles all API calls to ICONOMI.
@@ -49,8 +36,6 @@ export function generateSignature(payload, requestType, requestPath, timestamp) 
 }
 
 async function apiWorker({ method, api, payload = '', signed = false }) {
-  await sleep(10);
-  // console.log(`${method} ${api}`);
   let payloadText = '';
   if (method === 'POST') payloadText = JSON.stringify(payload);
   const request = {
@@ -59,7 +44,7 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     'headers': {
       'Content-Type': 'application/json'
     },
-    timeout: 15000
+    timeout: 5000
   }
   if (signed) {
     const timestamp = new Date().getTime();
@@ -71,14 +56,23 @@ async function apiWorker({ method, api, payload = '', signed = false }) {
     });
   }
   if (method === 'POST') {
-    // request.body = payloadText;
     request.data = payload;
   }
-  const res = await axios(request);
+  let res = null, i = 0;
+  while (res === null) {
+    i++;
+    try {
+      res = await axios(request);
+    } catch (err) {
+      if (i >= 5) {
+        throw err;
+      }
+    }
+  }
   return res.data;
 }
 
-const q = fastq.promise(apiWorker, 5);
+const q = fastq.promise(apiWorker, 1);
 async function api(method, api, payload = '', signed = false) {
   return await q.push({ method, api, payload, signed });
 };
@@ -120,5 +114,17 @@ api.strategies.structure = async function (ticker, signed = false) {
   return await api.get(`/v1/strategies/${ticker}/structure`, signed);
 };
 api.strategies.pricehistory = createPriceHistory('/v1/strategies');
+api.strategies.full = async function (ticker, signed = false) {
+  const s = await api.strategies(ticker, signed);
+  const [price, statistics, structure] = await Promise.all([
+    api.strategies.price(ticker, signed),
+    api.strategies.statistics(ticker, signed),
+    api.strategies.structure(ticker, signed)
+  ]);
+  s.price = price;
+  s.statistics = statistics;
+  s.structure = structure;
+  return s;
+}
 
 export default api;

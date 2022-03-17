@@ -80,7 +80,7 @@ export const etlStrategies = async function (opts = {}) {
     const etlExpiration = (await db.get("config/etlExpiration") || 45) * 60000
     const retrieval = await db.get("strategies/retrieval") || {};
     strategies.forEach(s => {
-        if (!retrieval[s.ticker]) {
+        if (!retrieval[s.ticker] || opts.force) {
             retrieval[s.ticker] = 0;
         }
     });
@@ -89,7 +89,7 @@ export const etlStrategies = async function (opts = {}) {
     // let n = Object.values(retrieval).filter(t => !opts.force && t > now - etlExpiration).length;
     await Promise.all(strategies.map(async (s,n) => {
         const ticker = s.ticker;
-        if (!opts.force && retrieval[ticker] > now - etlExpiration) {
+        if (retrieval[ticker] > now - etlExpiration) {
             return;
         }
         const [price, statistics, structure] = await Promise.all([
@@ -145,7 +145,7 @@ export const etlPriceHistory = async (ticker, opts = {}) => {
     return result;
 }
 
-export const etlPriceHistories = async opts => {
+export const etlPriceHistories = async (opts = {}) => {
     const strategies = await iconomi.strategies();
     // let n = 0;
     // for (let s of strategies) {
