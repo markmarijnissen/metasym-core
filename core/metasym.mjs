@@ -40,6 +40,10 @@ export const ensureDefaultConfig = (config) => {
             n: [0, 0, 7, 30, 30, 30],
             method: "hull"
         },
+        normalize: {
+            strategy: 1,        // the weight of strategy score as power; 0 = every strategy is equally important; 1 = linear; 2 = quadratic
+            asset: 1            // the weight of an asset as power; 0 = how many times it is mentioned; 1 = linear; 2 = quadratic;
+        },
         multiplier: {},         // map from { ticker: multiplier }, use to boost/reduce/ignore strategies
         verified: {},           // manually verify strategies to be eligble for METASYM
         minStrategies: 10,
@@ -146,7 +150,7 @@ export const scoreStrategies = (strategies, config) => {
     // Pass 2 - Normalized & Fraction Scores
     const min = _.minBy(result, "score")?.score || 0;
     const max = _.maxBy(result, "score")?.score || 0;
-    const sumScore = _.sum(result.map(s => s.score - min));
+    const sumScore = _.sum(result.map(s => Math.pow(s.score - min, config.normalize.strategy)));
     const numStrategies = _.filter(result, s => s.score !== 0).length;
     if (_.sumBy(result,"score") === 0 || numStrategies < config.minStrategies) {
         console.warn(`Ensure at least ${config.minStrategies} strategies have config.verified[TICKER] = true and a config.multiplier[ticker] > 0`);
@@ -155,16 +159,22 @@ export const scoreStrategies = (strategies, config) => {
 
     _.forEach(result, s => {
         // Normalized score [0...1]
-        s.nscore = Number((s.score - min) / (max - min) * 1)
+        s.nscore = Math.pow(Number((s.score - min) / (max - min) * 1), config.normalize.strategy);
 
         // Fraction score; the sum of selected strategies is 1 (can be used for visualisation purposes later)
-        s.fscore = Number((s.score - min) / sumScore);
+        s.fscore = Number(Math.pow(s.score - min, config.normalize.strategy) / sumScore);
 
         // Apply normalized and fraction score to the assets.
         s.structure.values.forEach(c => {
             const cmultiplier = _.isNumber(config.assetMultiplier[c.ticker]) ? config.assetMultiplier[c.ticker] : 1.0;
-            c.nscore = c.rebalancedWeight * s.nscore * cmultiplier;
-            c.fscore = c.rebalancedWeight * s.fscore * cmultiplier;
+            c.nscore = Math.pow(c.rebalancedWeight * s.nscore * cmultiplier, config.normalize.asset);
+            c.fscore = Math.pow(c.rebalancedWeight * s.fscore * cmultiplier, config.normalize.asset);
+        });
+
+        const key = "nscore";
+        const assetSumScore = _.sumBy(s.structure.values, key);
+        s.structure.values.forEach(c => {
+            c.normalizedWeight = c[key] / assetSumScore;
         });
 
     });
